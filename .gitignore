@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+
+# WhatsApp sessions
+services/whatsapp-gateway/sessions/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Runtime artifacts
+*.log
+tmp/
+artifacts/
+coverage/
+
+# Local installers / temp
+gh.pkg
+whatsapp_qr.png

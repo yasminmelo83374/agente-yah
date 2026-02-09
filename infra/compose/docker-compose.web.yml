@@ -1,0 +1,14 @@
+services:
+  web-automation:
+    build:
+      context: ./services/web-automation
+    environment:
+      WEB_ARTIFACTS_DIR: /app/artifacts
+    volumes:
+      - web_artifacts:/app/artifacts
+    ports:
+      - "9095:9095"
+    profiles: ["web"]
+
+volumes:
+  web_artifacts:

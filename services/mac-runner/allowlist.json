@@ -1,0 +1,23 @@
+{
+  "allowed_commands": [
+    "ls",
+    "pwd",
+    "whoami",
+    "python",
+    "pip",
+    "git",
+    "docker",
+    "docker compose",
+    "npm",
+    "pnpm",
+    "yarn",
+    "node",
+    "bun",
+    "make",
+    "rsync",
+    "ssh"
+  ],
+  "allowed_paths": [
+    "/Users/yasminmelo/Documents/New project"
+  ]
+}

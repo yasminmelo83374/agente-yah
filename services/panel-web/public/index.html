@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agent Platform Panel</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      window.AGENT_API_URL = "http://localhost:8080";
+    </script>
+  </head>
+  <body>
+    <header>
+      <h1>Painel do Agente</h1>
+      <p class="subtitle">Timeline, aprovacoes e controle central do orquestrador.</p>
+    </header>
+    <main>
+      <section class="grid">
+        <article class="card">
+          <h2>Estado global</h2>
+          <p>Kill switch: <span class="badge" data-kill-status>Carregando...</span></p>
+          <div class="controls">
+            <button data-kill-on>Ativar kill switch</button>
+            <button class="ghost" data-kill-off>Desativar kill switch</button>
+          </div>
+          <p class="footer-note">API: <span data-api-url></span></p>
+        </article>
+        <article class="card">
+          <h2>Operacao</h2>
+          <p>Atualize a fila e acompanhe o status das tarefas.</p>
+          <div class="controls">
+            <button class="secondary" data-refresh>Atualizar</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="card" style="margin-top: 20px;">
+        <h2>Fila de jobs</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Risco</th>
+              <th>Worker</th>
+              <th>Status</th>
+              <th>Confirmacoes</th>
+              <th>Comando</th>
+              <th>Acoes</th>
+            </tr>
+          </thead>
+          <tbody data-jobs-body>
+            <tr><td colspan="7">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card" style="margin-top: 20px;">
+        <h2>Auditoria</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Evento</th>
+              <th>Ator</th>
+              <th>Payload</th>
+            </tr>
+          </thead>
+          <tbody data-audit-body>
+            <tr><td colspan="4">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

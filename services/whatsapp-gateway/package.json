@@ -1,0 +1,13 @@
+{
+  "name": "whatsapp-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "pino": "^9.4.0"
+  }
+}
