@@ -103,8 +103,8 @@ function Mark-Failure([string]$Message) {
 function Safe-Exec([scriptblock]$Code, [string]$Label) {
   try {
     & $Code
-    Write-Log "$Label: OK"
-    Add-Report "$Label: OK"
+    Write-Log "${Label}: OK"
+    Add-Report "${Label}: OK"
     return $true
   } catch {
     $msg = $_.Exception.Message
@@ -708,7 +708,7 @@ try {
   exit 0
 } catch {
   $safeMessage = $_.Exception.Message
-  Write-Log "Falha no modo $Mode: $safeMessage"
+  Write-Log "Falha no modo ${Mode}: $safeMessage"
   Add-Report "Falha: $safeMessage"
   Add-Report 'Consulte o log para detalhes tecnicos.'
   $script:ResultTag = 'FAILED'
