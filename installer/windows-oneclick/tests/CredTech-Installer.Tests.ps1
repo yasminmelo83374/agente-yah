@@ -122,7 +122,6 @@ Describe 'CredTech-Installer.ps1' {
     script:Reset-CredTechPaths
     New-Item -ItemType Directory -Force -Path $script:ProgramDataRoot | Out-Null
     @{ project_bundle_url = 'https://config.example/bundle.zip' } | ConvertTo-Json -Depth 5 | Set-Content -Path $script:ConfigPath -Encoding UTF8
-    $env:CREDTECH_BUNDLE_URL = 'https://env.example/bundle.zip'
     $null = script:Invoke-InstallerMode -Mode Diagnose
     $report = Get-Content -Raw -Path $script:ReportPath
     $report | Should -Match 'Bundle URL origem: config'
