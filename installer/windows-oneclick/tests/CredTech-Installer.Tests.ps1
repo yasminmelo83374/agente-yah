@@ -1,4 +1,8 @@
-$ScriptUnderTest = Join-Path $PSScriptRoot '..\CredTech-Installer.ps1'
+$ScriptUnderTest = ''
+$resolvedScript = Resolve-Path (Join-Path $PSScriptRoot '..\CredTech-Installer.ps1') -ErrorAction SilentlyContinue
+if ($resolvedScript) {
+  $ScriptUnderTest = $resolvedScript.Path
+}
 $ProgramDataRoot = 'C:\ProgramData\CredTechInstaller'
 $LogPath = Join-Path $ProgramDataRoot 'logs\install.log'
 $ReportPath = Join-Path $ProgramDataRoot 'install-report.txt'
@@ -12,6 +16,12 @@ $StableBundleUrl = 'https://github.com/yasminmelo83374/agente-yah/releases/lates
 Describe 'CredTech-Installer.ps1' {
   BeforeAll {
     $script:TestScriptUnderTest = $ScriptUnderTest
+    if ([string]::IsNullOrWhiteSpace($script:TestScriptUnderTest)) {
+      $fallback = Resolve-Path 'installer/windows-oneclick/CredTech-Installer.ps1' -ErrorAction SilentlyContinue
+      if ($fallback) {
+        $script:TestScriptUnderTest = $fallback.Path
+      }
+    }
     $script:TestProgramDataRoot = $ProgramDataRoot
     $script:TestLocalCredTech = $LocalCredTech
 
@@ -36,6 +46,10 @@ Describe 'CredTech-Installer.ps1' {
         $env:CREDTECH_FORCE_FAIL = $ForceFailMode
       } else {
         Remove-Item Env:CREDTECH_FORCE_FAIL -ErrorAction SilentlyContinue
+      }
+
+      if ([string]::IsNullOrWhiteSpace($script:TestScriptUnderTest)) {
+        throw 'ScriptUnderTest nao resolvido para execucao.'
       }
 
       $args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script:TestScriptUnderTest, '-Mode', $Mode, '-NoReboot')
