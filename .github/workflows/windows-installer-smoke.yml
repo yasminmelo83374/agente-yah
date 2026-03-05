@@ -1,0 +1,33 @@
+name: Windows Installer Smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse PowerShell script
+        shell: pwsh
+        run: |
+          $script = "installer/windows-oneclick/CredTech-Installer.ps1"
+          $null = [System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$null, [ref]$null)
+          Write-Host "Parser OK"
+
+      - name: Run Diagnose mode
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File "installer/windows-oneclick/CredTech-Installer.ps1" -Mode Diagnose -ProjectBundleUrl "https://github.com/yasminmelo83374/agente-yah/releases/latest/download/credtech-bundle.zip" -NoReboot
+
+      - name: Assert report and logs
+        shell: pwsh
+        run: |
+          $report = "C:\ProgramData\CredTechInstaller\install-report.txt"
+          $log = "C:\ProgramData\CredTechInstaller\logs\install.log"
+          if (-not (Test-Path $report)) { throw "install-report.txt not found" }
+          if (-not (Test-Path $log)) { throw "install.log not found" }
+          Get-Content $report -Tail 40
+          Get-Content $log -Tail 20
