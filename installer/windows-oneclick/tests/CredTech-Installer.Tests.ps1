@@ -5,14 +5,17 @@ $ReportPath = Join-Path $ProgramDataRoot 'install-report.txt'
 $ConfigPath = Join-Path $ProgramDataRoot 'config.json'
 $BundleZipPath = Join-Path $ProgramDataRoot 'bundles\current.zip'
 $AppDir = Join-Path $ProgramDataRoot 'app'
-$LocalCredTech = Join-Path $env:LOCALAPPDATA 'CredTech'
+$LocalAppData = [Environment]::GetFolderPath('LocalApplicationData')
+$LocalCredTech = Join-Path $LocalAppData 'CredTech'
 $StableBundleUrl = 'https://github.com/yasminmelo83374/agente-yah/releases/latest/download/credtech-bundle.zip'
 
 Describe 'CredTech-Installer.ps1' {
   BeforeAll {
     function script:Reset-CredTechPaths {
       if (Test-Path $ProgramDataRoot) { Remove-Item -Recurse -Force $ProgramDataRoot }
-      if (Test-Path $LocalCredTech) { Remove-Item -Recurse -Force $LocalCredTech }
+      if (-not [string]::IsNullOrWhiteSpace($LocalCredTech)) {
+        if (Test-Path $LocalCredTech) { Remove-Item -Recurse -Force $LocalCredTech }
+      }
     }
 
     function script:Invoke-InstallerMode {
@@ -58,7 +61,7 @@ Describe 'CredTech-Installer.ps1' {
     (Test-Path 'C:\ProgramData\CredTechInstaller') | Should -BeTrue
     (Test-Path 'C:\ProgramData\CredTechInstaller\logs') | Should -BeTrue
     (Test-Path 'C:\ProgramData\CredTechInstaller\state') | Should -BeTrue
-    (Test-Path (Join-Path $env:LOCALAPPDATA 'CredTech')) | Should -BeTrue
+    (Test-Path (Join-Path $LocalAppData 'CredTech')) | Should -BeTrue
   }
 
   It 'config.json e criado e contem project_bundle_url' {
