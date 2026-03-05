@@ -67,12 +67,12 @@ function Flush-Report([string]$Status) {
 
 function Load-State {
   if (-not (Test-Path $StatePath)) {
-    return @{ version = 1; rebootPending = $false; resumeMode = ''; bundleUrl = ''; lastRun = '' }
+    return [pscustomobject]@{ version = 1; rebootPending = $false; resumeMode = ''; bundleUrl = ''; lastRun = '' }
   }
   try {
-    return Get-Content -Path $StatePath -Raw | ConvertFrom-Json -AsHashtable
+    return Get-Content -Path $StatePath -Raw | ConvertFrom-Json
   } catch {
-    return @{ version = 1; rebootPending = $false; resumeMode = ''; bundleUrl = ''; lastRun = '' }
+    return [pscustomobject]@{ version = 1; rebootPending = $false; resumeMode = ''; bundleUrl = ''; lastRun = '' }
   }
 }
 
@@ -126,8 +126,8 @@ function Get-ConfigBundleUrl {
     return ''
   }
   try {
-    $cfg = Get-Content -Path $ConfigPath -Raw | ConvertFrom-Json -AsHashtable
-    if ($cfg.ContainsKey('project_bundle_url')) {
+    $cfg = Get-Content -Path $ConfigPath -Raw | ConvertFrom-Json
+    if ($null -ne $cfg -and $cfg.PSObject.Properties.Name -contains 'project_bundle_url') {
       return [string]$cfg.project_bundle_url
     }
   } catch {
@@ -153,16 +153,23 @@ function Save-ConfigBundleUrl([string]$Url) {
     return
   }
 
-  $cfg = @{}
+  $cfg = [pscustomobject]@{}
   if (Test-Path $ConfigPath) {
     try {
-      $cfg = Get-Content -Path $ConfigPath -Raw | ConvertFrom-Json -AsHashtable
+      $cfg = Get-Content -Path $ConfigPath -Raw | ConvertFrom-Json
+      if ($null -eq $cfg) {
+        $cfg = [pscustomobject]@{}
+      }
     } catch {
-      $cfg = @{}
+      $cfg = [pscustomobject]@{}
     }
   }
 
-  $cfg.project_bundle_url = $Url.Trim()
+  if ($cfg.PSObject.Properties.Name -contains 'project_bundle_url') {
+    $cfg.project_bundle_url = $Url.Trim()
+  } else {
+    $cfg | Add-Member -NotePropertyName project_bundle_url -NotePropertyValue $Url.Trim()
+  }
   $cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $ConfigPath -Encoding UTF8
   Write-Log "config.json atualizado com URL do bundle"
 }
