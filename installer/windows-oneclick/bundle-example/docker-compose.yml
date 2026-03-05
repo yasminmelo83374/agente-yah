@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  app:
+    image: nginx:alpine
+    ports:
+      - "${PANEL_PORT:-3000}:80"
+    restart: unless-stopped
+
+  api:
+    image: hashicorp/http-echo:1.0
+    command: ["-text=ok", "-listen=:5678"]
+    ports:
+      - "${API_PORT:-8080}:5678"
+    restart: unless-stopped
