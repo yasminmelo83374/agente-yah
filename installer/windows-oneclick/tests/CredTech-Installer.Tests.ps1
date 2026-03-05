@@ -109,8 +109,9 @@ Describe 'CredTech-Installer.ps1' {
   }
 
   It 'Resolve-BundleUrl respeita prioridade parameter > config > env' {
+    script:Reset-CredTechPaths
     New-Item -ItemType Directory -Force -Path $script:ProgramDataRoot | Out-Null
-    @{ project_bundle_url = 'https://config.example/bundle.zip' } | ConvertTo-Json | Set-Content -Path $script:ConfigPath -Encoding UTF8
+    @{ project_bundle_url = 'https://config.example/bundle.zip' } | ConvertTo-Json -Depth 5 | Set-Content -Path $script:ConfigPath -Encoding UTF8
     $env:CREDTECH_BUNDLE_URL = 'https://env.example/bundle.zip'
 
     $null = script:Invoke-InstallerMode -Mode Diagnose -ProjectBundleUrl 'https://param.example/bundle.zip'
@@ -118,12 +119,18 @@ Describe 'CredTech-Installer.ps1' {
     $report | Should -Match 'Bundle URL origem: parameter'
     $report | Should -Match 'https://param\.example/bundle\.zip'
 
+    script:Reset-CredTechPaths
+    $null = script:Invoke-InstallerMode -Mode Diagnose -ProjectBundleUrl 'https://config.example/bundle.zip'
+    $env:CREDTECH_BUNDLE_URL = 'https://env.example/bundle.zip'
     $null = script:Invoke-InstallerMode -Mode Diagnose
     $report = Get-Content -Raw -Path $script:ReportPath
     $report | Should -Match 'Bundle URL origem: config'
     $report | Should -Match 'https://config\.example/bundle\.zip'
 
+    script:Reset-CredTechPaths
+    New-Item -ItemType Directory -Force -Path $script:ProgramDataRoot | Out-Null
     @{} | ConvertTo-Json | Set-Content -Path $script:ConfigPath -Encoding UTF8
+    $env:CREDTECH_BUNDLE_URL = 'https://env.example/bundle.zip'
     $null = script:Invoke-InstallerMode -Mode Diagnose
     $report = Get-Content -Raw -Path $script:ReportPath
     $report | Should -Match 'Bundle URL origem: environment'
