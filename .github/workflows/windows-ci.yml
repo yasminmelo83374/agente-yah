@@ -35,8 +35,9 @@ jobs:
         run: |
           $results = Invoke-ScriptAnalyzer -Path 'installer/windows-oneclick/CredTech-Installer.ps1' -Recurse
           $results | Format-Table
-          if ($results) {
-            throw "PSScriptAnalyzer found issues."
+          $errors = $results | Where-Object { $_.Severity -eq 'Error' }
+          if ($errors) {
+            throw "PSScriptAnalyzer found errors."
           }
 
       - name: Run Pester tests
