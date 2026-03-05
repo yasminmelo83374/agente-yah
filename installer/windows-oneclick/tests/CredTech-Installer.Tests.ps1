@@ -8,49 +8,51 @@ $AppDir = Join-Path $ProgramDataRoot 'app'
 $LocalCredTech = Join-Path $env:LOCALAPPDATA 'CredTech'
 $StableBundleUrl = 'https://github.com/yasminmelo83374/agente-yah/releases/latest/download/credtech-bundle.zip'
 
-function Reset-CredTechPaths {
-  if (Test-Path $ProgramDataRoot) { Remove-Item -Recurse -Force $ProgramDataRoot }
-  if (Test-Path $LocalCredTech) { Remove-Item -Recurse -Force $LocalCredTech }
-}
-
-function Invoke-InstallerMode {
-  param(
-    [Parameter(Mandatory = $true)][string]$Mode,
-    [string]$ProjectBundleUrl,
-    [string]$ForceFailMode
-  )
-
-  $prev = $env:CREDTECH_FORCE_FAIL
-  if ($ForceFailMode) {
-    $env:CREDTECH_FORCE_FAIL = $ForceFailMode
-  } else {
-    Remove-Item Env:CREDTECH_FORCE_FAIL -ErrorAction SilentlyContinue
-  }
-
-  $args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $ScriptUnderTest, '-Mode', $Mode, '-NoReboot')
-  if ($ProjectBundleUrl) {
-    $args += @('-ProjectBundleUrl', $ProjectBundleUrl)
-  }
-
-  & powershell.exe @args | Out-Null
-  $exitCode = $LASTEXITCODE
-
-  if ($null -ne $prev) {
-    $env:CREDTECH_FORCE_FAIL = $prev
-  } else {
-    Remove-Item Env:CREDTECH_FORCE_FAIL -ErrorAction SilentlyContinue
-  }
-
-  return $exitCode
-}
-
 Describe 'CredTech-Installer.ps1' {
+  BeforeAll {
+    function script:Reset-CredTechPaths {
+      if (Test-Path $ProgramDataRoot) { Remove-Item -Recurse -Force $ProgramDataRoot }
+      if (Test-Path $LocalCredTech) { Remove-Item -Recurse -Force $LocalCredTech }
+    }
+
+    function script:Invoke-InstallerMode {
+      param(
+        [Parameter(Mandatory = $true)][string]$Mode,
+        [string]$ProjectBundleUrl,
+        [string]$ForceFailMode
+      )
+
+      $prev = $env:CREDTECH_FORCE_FAIL
+      if ($ForceFailMode) {
+        $env:CREDTECH_FORCE_FAIL = $ForceFailMode
+      } else {
+        Remove-Item Env:CREDTECH_FORCE_FAIL -ErrorAction SilentlyContinue
+      }
+
+      $args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $ScriptUnderTest, '-Mode', $Mode, '-NoReboot')
+      if ($ProjectBundleUrl) {
+        $args += @('-ProjectBundleUrl', $ProjectBundleUrl)
+      }
+
+      & powershell.exe @args | Out-Null
+      $exitCode = $LASTEXITCODE
+
+      if ($null -ne $prev) {
+        $env:CREDTECH_FORCE_FAIL = $prev
+      } else {
+        Remove-Item Env:CREDTECH_FORCE_FAIL -ErrorAction SilentlyContinue
+      }
+
+      return $exitCode
+    }
+  }
+
   BeforeEach {
-    Reset-CredTechPaths
+    script:Reset-CredTechPaths
   }
 
   It 'Ensure-Directories cria todas as pastas obrigatorias' {
-    $code = Invoke-InstallerMode -Mode Diagnose -ForceFailMode Diagnose
+    $code = script:Invoke-InstallerMode -Mode Diagnose -ForceFailMode Diagnose
     $code | Should -Be 1
 
     (Test-Path 'C:\ProgramData\CredTechInstaller') | Should -BeTrue
@@ -60,7 +62,7 @@ Describe 'CredTech-Installer.ps1' {
   }
 
   It 'config.json e criado e contem project_bundle_url' {
-    $null = Invoke-InstallerMode -Mode Diagnose -ForceFailMode Diagnose
+    $null = script:Invoke-InstallerMode -Mode Diagnose -ForceFailMode Diagnose
 
     (Test-Path $ConfigPath) | Should -BeTrue
     $cfg = Get-Content -Raw -Path $ConfigPath | ConvertFrom-Json
@@ -72,18 +74,18 @@ Describe 'CredTech-Installer.ps1' {
     @{ project_bundle_url = 'https://config.example/bundle.zip' } | ConvertTo-Json | Set-Content -Path $ConfigPath -Encoding UTF8
     $env:CREDTECH_BUNDLE_URL = 'https://env.example/bundle.zip'
 
-    $null = Invoke-InstallerMode -Mode Diagnose -ProjectBundleUrl 'https://param.example/bundle.zip'
+    $null = script:Invoke-InstallerMode -Mode Diagnose -ProjectBundleUrl 'https://param.example/bundle.zip'
     $report = Get-Content -Raw -Path $ReportPath
     $report | Should -Match 'Bundle URL origem: parameter'
     $report | Should -Match 'https://param\.example/bundle\.zip'
 
-    $null = Invoke-InstallerMode -Mode Diagnose
+    $null = script:Invoke-InstallerMode -Mode Diagnose
     $report = Get-Content -Raw -Path $ReportPath
     $report | Should -Match 'Bundle URL origem: config'
     $report | Should -Match 'https://config\.example/bundle\.zip'
 
     @{} | ConvertTo-Json | Set-Content -Path $ConfigPath -Encoding UTF8
-    $null = Invoke-InstallerMode -Mode Diagnose
+    $null = script:Invoke-InstallerMode -Mode Diagnose
     $report = Get-Content -Raw -Path $ReportPath
     $report | Should -Match 'Bundle URL origem: environment'
     $report | Should -Match 'https://env\.example/bundle\.zip'
@@ -92,7 +94,7 @@ Describe 'CredTech-Installer.ps1' {
   }
 
   It 'Download-Bundle baixa zip de teste e Extract-Bundle extrai docker-compose.yml' {
-    $code = Invoke-InstallerMode -Mode ValidateOnly -ProjectBundleUrl $StableBundleUrl
+    $code = script:Invoke-InstallerMode -Mode ValidateOnly -ProjectBundleUrl $StableBundleUrl
     $code | Should -Be 0
 
     (Test-Path $BundleZipPath) | Should -BeTrue
@@ -102,8 +104,8 @@ Describe 'CredTech-Installer.ps1' {
 
   It 'Diagnose, Install e Repair geram report e log mesmo em falha' {
     foreach ($mode in @('Diagnose','Install','Repair')) {
-      Reset-CredTechPaths
-      $code = Invoke-InstallerMode -Mode $mode -ForceFailMode $mode
+      script:Reset-CredTechPaths
+      $code = script:Invoke-InstallerMode -Mode $mode -ForceFailMode $mode
       $code | Should -Be 1
       (Test-Path $ReportPath) | Should -BeTrue
       (Test-Path $LogPath) | Should -BeTrue
