@@ -11,10 +11,16 @@ $StableBundleUrl = 'https://github.com/yasminmelo83374/agente-yah/releases/lates
 
 Describe 'CredTech-Installer.ps1' {
   BeforeAll {
+    $script:TestScriptUnderTest = $ScriptUnderTest
+    $script:TestProgramDataRoot = $ProgramDataRoot
+    $script:TestLocalCredTech = $LocalCredTech
+
     function script:Reset-CredTechPaths {
-      if (Test-Path $ProgramDataRoot) { Remove-Item -Recurse -Force $ProgramDataRoot }
-      if (-not [string]::IsNullOrWhiteSpace($LocalCredTech)) {
-        if (Test-Path $LocalCredTech) { Remove-Item -Recurse -Force $LocalCredTech }
+      if (-not [string]::IsNullOrWhiteSpace($script:TestProgramDataRoot)) {
+        if (Test-Path $script:TestProgramDataRoot) { Remove-Item -Recurse -Force $script:TestProgramDataRoot }
+      }
+      if (-not [string]::IsNullOrWhiteSpace($script:TestLocalCredTech)) {
+        if (Test-Path $script:TestLocalCredTech) { Remove-Item -Recurse -Force $script:TestLocalCredTech }
       }
     }
 
@@ -32,7 +38,7 @@ Describe 'CredTech-Installer.ps1' {
         Remove-Item Env:CREDTECH_FORCE_FAIL -ErrorAction SilentlyContinue
       }
 
-      $args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $ScriptUnderTest, '-Mode', $Mode, '-NoReboot')
+      $args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script:TestScriptUnderTest, '-Mode', $Mode, '-NoReboot')
       if ($ProjectBundleUrl) {
         $args += @('-ProjectBundleUrl', $ProjectBundleUrl)
       }
