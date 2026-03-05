@@ -126,13 +126,14 @@ function Get-ConfigBundleUrl {
     return ''
   }
   try {
-    $raw = Get-Content -Path $ConfigPath -Raw
+    $raw = Get-Content -Path $ConfigPath -Raw -ErrorAction Stop
+    if ($raw -match '"project_bundle_url"\s*:\s*"([^"]+)"') {
+      return [string]$matches[1]
+    }
+
     $cfg = $raw | ConvertFrom-Json
     if ($null -ne $cfg -and $cfg.PSObject.Properties.Name -contains 'project_bundle_url') {
       return [string]$cfg.project_bundle_url
-    }
-    if ($raw -match '\"project_bundle_url\"\\s*:\\s*\"([^\"]+)\"') {
-      return [string]$matches[1]
     }
   } catch {
     Write-Log 'config.json invalido; ignorando para leitura de URL.'
