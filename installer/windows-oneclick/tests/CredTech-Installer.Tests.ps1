@@ -1,29 +1,29 @@
-$ScriptUnderTest = ''
+$script:ScriptUnderTest = ''
 $resolvedScript = Resolve-Path (Join-Path $PSScriptRoot '..\CredTech-Installer.ps1') -ErrorAction SilentlyContinue
 if ($resolvedScript) {
-  $ScriptUnderTest = $resolvedScript.Path
+  $script:ScriptUnderTest = $resolvedScript.Path
 }
-$ProgramDataRoot = 'C:\ProgramData\CredTechInstaller'
-$LogPath = Join-Path $ProgramDataRoot 'logs\install.log'
-$ReportPath = Join-Path $ProgramDataRoot 'install-report.txt'
-$ConfigPath = Join-Path $ProgramDataRoot 'config.json'
-$BundleZipPath = Join-Path $ProgramDataRoot 'bundles\current.zip'
-$AppDir = Join-Path $ProgramDataRoot 'app'
-$LocalAppData = [Environment]::GetFolderPath('LocalApplicationData')
-$LocalCredTech = Join-Path $LocalAppData 'CredTech'
-$StableBundleUrl = 'https://github.com/yasminmelo83374/agente-yah/releases/latest/download/credtech-bundle.zip'
+$script:ProgramDataRoot = 'C:\ProgramData\CredTechInstaller'
+$script:LogPath = Join-Path $script:ProgramDataRoot 'logs\install.log'
+$script:ReportPath = Join-Path $script:ProgramDataRoot 'install-report.txt'
+$script:ConfigPath = Join-Path $script:ProgramDataRoot 'config.json'
+$script:BundleZipPath = Join-Path $script:ProgramDataRoot 'bundles\current.zip'
+$script:AppDir = Join-Path $script:ProgramDataRoot 'app'
+$script:LocalAppData = [Environment]::GetFolderPath('LocalApplicationData')
+$script:LocalCredTech = Join-Path $script:LocalAppData 'CredTech'
+$script:StableBundleUrl = 'https://github.com/yasminmelo83374/agente-yah/releases/latest/download/credtech-bundle.zip'
 
 Describe 'CredTech-Installer.ps1' {
   BeforeAll {
-    $script:TestScriptUnderTest = $ScriptUnderTest
+    $script:TestScriptUnderTest = $script:ScriptUnderTest
     if ([string]::IsNullOrWhiteSpace($script:TestScriptUnderTest)) {
       $fallback = Resolve-Path 'installer/windows-oneclick/CredTech-Installer.ps1' -ErrorAction SilentlyContinue
       if ($fallback) {
         $script:TestScriptUnderTest = $fallback.Path
       }
     }
-    $script:TestProgramDataRoot = $ProgramDataRoot
-    $script:TestLocalCredTech = $LocalCredTech
+    $script:TestProgramDataRoot = $script:ProgramDataRoot
+    $script:TestLocalCredTech = $script:LocalCredTech
 
     function script:Reset-CredTechPaths {
       if (-not [string]::IsNullOrWhiteSpace($script:TestProgramDataRoot)) {
@@ -81,35 +81,35 @@ Describe 'CredTech-Installer.ps1' {
     (Test-Path 'C:\ProgramData\CredTechInstaller') | Should -BeTrue
     (Test-Path 'C:\ProgramData\CredTechInstaller\logs') | Should -BeTrue
     (Test-Path 'C:\ProgramData\CredTechInstaller\state') | Should -BeTrue
-    (Test-Path (Join-Path $LocalAppData 'CredTech')) | Should -BeTrue
+    (Test-Path (Join-Path $script:LocalAppData 'CredTech')) | Should -BeTrue
   }
 
   It 'config.json e criado e contem project_bundle_url' {
     $null = script:Invoke-InstallerMode -Mode Diagnose -ForceFailMode Diagnose
 
-    (Test-Path $ConfigPath) | Should -BeTrue
-    $cfg = Get-Content -Raw -Path $ConfigPath | ConvertFrom-Json
+    (Test-Path $script:ConfigPath) | Should -BeTrue
+    $cfg = Get-Content -Raw -Path $script:ConfigPath | ConvertFrom-Json
     $cfg.project_bundle_url | Should -Not -BeNullOrEmpty
   }
 
   It 'Resolve-BundleUrl respeita prioridade parameter > config > env' {
-    New-Item -ItemType Directory -Force -Path $ProgramDataRoot | Out-Null
-    @{ project_bundle_url = 'https://config.example/bundle.zip' } | ConvertTo-Json | Set-Content -Path $ConfigPath -Encoding UTF8
+    New-Item -ItemType Directory -Force -Path $script:ProgramDataRoot | Out-Null
+    @{ project_bundle_url = 'https://config.example/bundle.zip' } | ConvertTo-Json | Set-Content -Path $script:ConfigPath -Encoding UTF8
     $env:CREDTECH_BUNDLE_URL = 'https://env.example/bundle.zip'
 
     $null = script:Invoke-InstallerMode -Mode Diagnose -ProjectBundleUrl 'https://param.example/bundle.zip'
-    $report = Get-Content -Raw -Path $ReportPath
+    $report = Get-Content -Raw -Path $script:ReportPath
     $report | Should -Match 'Bundle URL origem: parameter'
     $report | Should -Match 'https://param\.example/bundle\.zip'
 
     $null = script:Invoke-InstallerMode -Mode Diagnose
-    $report = Get-Content -Raw -Path $ReportPath
+    $report = Get-Content -Raw -Path $script:ReportPath
     $report | Should -Match 'Bundle URL origem: config'
     $report | Should -Match 'https://config\.example/bundle\.zip'
 
-    @{} | ConvertTo-Json | Set-Content -Path $ConfigPath -Encoding UTF8
+    @{} | ConvertTo-Json | Set-Content -Path $script:ConfigPath -Encoding UTF8
     $null = script:Invoke-InstallerMode -Mode Diagnose
-    $report = Get-Content -Raw -Path $ReportPath
+    $report = Get-Content -Raw -Path $script:ReportPath
     $report | Should -Match 'Bundle URL origem: environment'
     $report | Should -Match 'https://env\.example/bundle\.zip'
 
@@ -117,12 +117,12 @@ Describe 'CredTech-Installer.ps1' {
   }
 
   It 'Download-Bundle baixa zip de teste e Extract-Bundle extrai docker-compose.yml' {
-    $code = script:Invoke-InstallerMode -Mode ValidateOnly -ProjectBundleUrl $StableBundleUrl
+    $code = script:Invoke-InstallerMode -Mode ValidateOnly -ProjectBundleUrl $script:StableBundleUrl
     $code | Should -Be 0
 
-    (Test-Path $BundleZipPath) | Should -BeTrue
-    (Get-Item $BundleZipPath).Length | Should -BeGreaterThan 1000
-    (Test-Path (Join-Path $AppDir 'docker-compose.yml')) | Should -BeTrue
+    (Test-Path $script:BundleZipPath) | Should -BeTrue
+    (Get-Item $script:BundleZipPath).Length | Should -BeGreaterThan 1000
+    (Test-Path (Join-Path $script:AppDir 'docker-compose.yml')) | Should -BeTrue
   }
 
   It 'Diagnose, Install e Repair geram report e log mesmo em falha' {
@@ -130,9 +130,9 @@ Describe 'CredTech-Installer.ps1' {
       script:Reset-CredTechPaths
       $code = script:Invoke-InstallerMode -Mode $mode -ForceFailMode $mode
       $code | Should -Be 1
-      (Test-Path $ReportPath) | Should -BeTrue
-      (Test-Path $LogPath) | Should -BeTrue
-      (Get-Content -Raw -Path $ReportPath) | Should -Match 'RESULT: FAILED'
+      (Test-Path $script:ReportPath) | Should -BeTrue
+      (Test-Path $script:LogPath) | Should -BeTrue
+      (Get-Content -Raw -Path $script:ReportPath) | Should -Match 'RESULT: FAILED'
     }
   }
 }

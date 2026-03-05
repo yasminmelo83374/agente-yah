@@ -64,7 +64,7 @@ jobs:
           if (Test-Path $log) { Copy-Item $log (Join-Path $artifactDir 'install.log') -Force }
 
           if (Test-Path 'C:\ProgramData\CredTechInstaller') {
-            cmd /c "tree C:\ProgramData\CredTechInstaller /f > \"$treeFile\""
+            Get-ChildItem 'C:\ProgramData\CredTechInstaller' -Recurse -Force | Select-Object FullName | Out-File -FilePath $treeFile -Encoding utf8
           } else {
             'C:\ProgramData\CredTechInstaller nao existe.' | Out-File -FilePath $treeFile -Encoding utf8
           }
