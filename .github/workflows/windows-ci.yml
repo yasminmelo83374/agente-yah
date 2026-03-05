@@ -1,0 +1,76 @@
+name: Windows CI
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'installer/windows-oneclick/**'
+      - '.github/workflows/windows-ci.yml'
+  pull_request:
+    paths:
+      - 'installer/windows-oneclick/**'
+      - '.github/workflows/windows-ci.yml'
+
+jobs:
+  test-windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PowerShell modules
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
+            Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          }
+          if (-not (Get-Module -ListAvailable -Name Pester)) {
+            Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck
+          }
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path 'installer/windows-oneclick/CredTech-Installer.ps1' -Recurse
+          $results | Format-Table
+          if ($results) {
+            throw "PSScriptAnalyzer found issues."
+          }
+
+      - name: Run Pester tests
+        shell: pwsh
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'installer/windows-oneclick/tests'
+          $config.Output.Verbosity = 'Detailed'
+          $config.Run.Exit = $true
+          Invoke-Pester -Configuration $config
+
+      - name: Collect CredTech artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          $artifactDir = Join-Path $env:RUNNER_TEMP 'credtech-artifacts'
+          New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+
+          $report = 'C:\ProgramData\CredTechInstaller\install-report.txt'
+          $log = 'C:\ProgramData\CredTechInstaller\logs\install.log'
+          $treeFile = Join-Path $artifactDir 'credtech-tree.txt'
+
+          if (Test-Path $report) { Copy-Item $report (Join-Path $artifactDir 'install-report.txt') -Force }
+          if (Test-Path $log) { Copy-Item $log (Join-Path $artifactDir 'install.log') -Force }
+
+          if (Test-Path 'C:\ProgramData\CredTechInstaller') {
+            cmd /c "tree C:\ProgramData\CredTechInstaller /f > \"$treeFile\""
+          } else {
+            'C:\ProgramData\CredTechInstaller nao existe.' | Out-File -FilePath $treeFile -Encoding utf8
+          }
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: credtech-windows-artifacts
+          path: ${{ runner.temp }}/credtech-artifacts/*

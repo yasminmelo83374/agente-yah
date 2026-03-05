@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet('Diagnose','Repair','Install','ResetProject')]
+  [ValidateSet('Diagnose','Repair','Install','ResetProject','ValidateOnly')]
   [string]$Mode,
   [string]$ProjectBundleUrl,
   [switch]$NoReboot
@@ -113,6 +113,14 @@ function Safe-Exec([scriptblock]$Code, [string]$Label) {
   }
 }
 
+function Stop-IfForcedFailure([string]$TargetMode) {
+  if ($env:CREDTECH_FORCE_FAIL -eq $TargetMode) {
+    Mark-Failure "Falha forcada para teste no modo $TargetMode."
+    return $true
+  }
+  return $false
+}
+
 function Get-ConfigBundleUrl {
   if (-not (Test-Path $ConfigPath)) {
     return ''
@@ -160,17 +168,34 @@ function Save-ConfigBundleUrl([string]$Url) {
 }
 
 function Resolve-BundleUrl {
+  $resolved = Resolve-BundleUrlInfo
+  return $resolved.url
+}
+
+function Resolve-BundleUrlInfo {
   if (-not [string]::IsNullOrWhiteSpace($ProjectBundleUrl)) {
-    return $ProjectBundleUrl.Trim()
+    return @{
+      url = $ProjectBundleUrl.Trim()
+      source = 'parameter'
+    }
   }
   $cfg = Get-ConfigBundleUrl
   if (-not [string]::IsNullOrWhiteSpace($cfg)) {
-    return $cfg.Trim()
+    return @{
+      url = $cfg.Trim()
+      source = 'config'
+    }
   }
   if (-not [string]::IsNullOrWhiteSpace($env:CREDTECH_BUNDLE_URL)) {
-    return $env:CREDTECH_BUNDLE_URL.Trim()
+    return @{
+      url = $env:CREDTECH_BUNDLE_URL.Trim()
+      source = 'environment'
+    }
   }
-  return ''
+  return @{
+    url = ''
+    source = 'none'
+  }
 }
 
 function Register-Resume([string]$ResumeMode, [string]$BundleUrl) {
@@ -562,14 +587,16 @@ function Reset-Project {
 }
 
 function Run-Diagnose {
+  if (Stop-IfForcedFailure 'Diagnose') { return }
   $diag = Get-DiagnosticSnapshot
   Write-DiagnoseReport -Diag $diag
 
-  $url = Resolve-BundleUrl
-  if ([string]::IsNullOrWhiteSpace($url)) {
+  $urlInfo = Resolve-BundleUrlInfo
+  if ([string]::IsNullOrWhiteSpace($urlInfo.url)) {
     Mark-Failure 'PROJECT_BUNDLE_URL ausente. Defina por parametro, config.json ou variavel de ambiente CREDTECH_BUNDLE_URL.'
   } else {
-    Add-Report "Bundle URL detectado: $url"
+    Add-Report "Bundle URL detectado: $($urlInfo.url)"
+    Add-Report "Bundle URL origem: $($urlInfo.source)"
   }
 
   if (-not $diag.virtualizationFirmwareEnabled) {
@@ -577,7 +604,36 @@ function Run-Diagnose {
   }
 }
 
+function Run-ValidateOnly {
+  if (Stop-IfForcedFailure 'ValidateOnly') { return }
+  Add-Report 'Modo ValidateOnly ativo: sem DISM, winget, WSL ou Docker.'
+  $diag = Get-DiagnosticSnapshot
+  Write-DiagnoseReport -Diag $diag
+
+  $urlInfo = Resolve-BundleUrlInfo
+  Add-Report "Resolve-BundleUrl source: $($urlInfo.source)"
+  Add-Report "Resolve-BundleUrl url: $($urlInfo.url)"
+
+  if ([string]::IsNullOrWhiteSpace($urlInfo.url)) {
+    Mark-Failure 'Sem URL de bundle para validacao de download/extracao.'
+    return
+  }
+
+  Save-ConfigBundleUrl -Url $urlInfo.url
+  Safe-Exec -Label 'ValidateOnly - Preparar pasta bundles' -Code { Prepare-BundleDestination } | Out-Null
+  Safe-Exec -Label 'ValidateOnly - Baixar bundle' -Code { Download-Bundle -Url $urlInfo.url } | Out-Null
+  Safe-Exec -Label 'ValidateOnly - Extrair bundle' -Code { Extract-Bundle } | Out-Null
+  Safe-Exec -Label 'ValidateOnly - Preparar env/portas' -Code { Prepare-AppEnv } | Out-Null
+
+  if (Test-Path (Join-Path $AppDir 'docker-compose.yml')) {
+    Add-Report 'ValidateOnly - docker-compose.yml encontrado no app extraido.'
+  } else {
+    Mark-Failure 'ValidateOnly - docker-compose.yml nao encontrado apos extracao.'
+  }
+}
+
 function Run-Install {
+  if (Stop-IfForcedFailure 'Install') { return }
   Ensure-Admin
 
   $diag = Get-DiagnosticSnapshot
@@ -647,6 +703,7 @@ function Run-Install {
 }
 
 function Run-Repair {
+  if (Stop-IfForcedFailure 'Repair') { return }
   Ensure-Admin
 
   $diag = Get-DiagnosticSnapshot
@@ -695,6 +752,7 @@ try {
     'Install' { Run-Install }
     'Repair' { Run-Repair }
     'ResetProject' { Ensure-Admin; Reset-Project }
+    'ValidateOnly' { Run-ValidateOnly }
   }
 
   if ($script:HadFailures) {
