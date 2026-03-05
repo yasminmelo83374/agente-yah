@@ -15,7 +15,23 @@ $script:StableBundleUrl = 'https://github.com/yasminmelo83374/agente-yah/release
 
 Describe 'CredTech-Installer.ps1' {
   BeforeAll {
-    $script:TestScriptUnderTest = $script:ScriptUnderTest
+    $script:ProgramDataRoot = 'C:\ProgramData\CredTechInstaller'
+    $script:LogPath = Join-Path $script:ProgramDataRoot 'logs\install.log'
+    $script:ReportPath = Join-Path $script:ProgramDataRoot 'install-report.txt'
+    $script:ConfigPath = Join-Path $script:ProgramDataRoot 'config.json'
+    $script:BundleZipPath = Join-Path $script:ProgramDataRoot 'bundles\current.zip'
+    $script:AppDir = Join-Path $script:ProgramDataRoot 'app'
+    $script:StableBundleUrl = 'https://github.com/yasminmelo83374/agente-yah/releases/latest/download/credtech-bundle.zip'
+    $script:LocalAppData = [Environment]::GetFolderPath('LocalApplicationData')
+    if ([string]::IsNullOrWhiteSpace($script:LocalAppData)) {
+      $script:LocalAppData = $env:TEMP
+    }
+    $script:LocalCredTech = Join-Path $script:LocalAppData 'CredTech'
+
+    $script:TestScriptUnderTest = Resolve-Path (Join-Path $PSScriptRoot '..\CredTech-Installer.ps1') -ErrorAction SilentlyContinue
+    if ($script:TestScriptUnderTest) {
+      $script:TestScriptUnderTest = $script:TestScriptUnderTest.Path
+    }
     if ([string]::IsNullOrWhiteSpace($script:TestScriptUnderTest)) {
       $fallback = Resolve-Path 'installer/windows-oneclick/CredTech-Installer.ps1' -ErrorAction SilentlyContinue
       if ($fallback) {
