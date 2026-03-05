@@ -6,6 +6,8 @@ set "BUNDLE_URL=https://github.com/yasminmelo83374/agente-yah/releases/latest/do
 set "ROOT_DIR=C:\ProgramData\CredTechInstaller"
 set "LOG_DIR=%ROOT_DIR%\logs"
 set "LAUNCHER_LOG=%LOG_DIR%\launcher-diagnose.log"
+set "BAT_LOG=%SCRIPT_DIR%bat-output.log"
+set "REPORT_PATH=C:\ProgramData\CredTechInstaller\install-report.txt"
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
@@ -15,12 +17,25 @@ if %errorlevel% neq 0 (
 
 if not exist "%ROOT_DIR%" mkdir "%ROOT_DIR%"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
+echo ================================================== > "%BAT_LOG%"
+echo [%date% %time%] Iniciando Diagnose.bat >> "%BAT_LOG%"
 echo [%date% %time%] Iniciando Diagnose.bat > "%LAUNCHER_LOG%"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$cfg=@{project_bundle_url='%BUNDLE_URL%'}; $cfg | ConvertTo-Json -Depth 3 | Set-Content -Path 'C:\ProgramData\CredTechInstaller\config.json' -Encoding UTF8"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS%" -Mode Diagnose -ProjectBundleUrl "%BUNDLE_URL%" >> "%LAUNCHER_LOG%" 2>&1
-if %errorlevel% neq 0 (
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$cfg=@{project_bundle_url='%BUNDLE_URL%'}; $cfg | ConvertTo-Json -Depth 3 | Set-Content -Path 'C:\ProgramData\CredTechInstaller\config.json' -Encoding UTF8" >> "%BAT_LOG%" 2>&1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS%" -Mode Diagnose -ProjectBundleUrl "%BUNDLE_URL%" >> "%BAT_LOG%" 2>&1
+set "RUN_CODE=%errorlevel%"
+if %RUN_CODE% neq 0 (
   echo [%date% %time%] Falha no Diagnose.bat. >> "%LAUNCHER_LOG%"
+  echo [%date% %time%] Falha no Diagnose.bat. >> "%BAT_LOG%"
   start "" notepad "%LAUNCHER_LOG%"
-  pause
+  start "" notepad "%BAT_LOG%"
 )
+if %RUN_CODE% equ 0 (
+  echo [%date% %time%] Diagnose concluido com sucesso. >> "%LAUNCHER_LOG%"
+  echo [%date% %time%] Diagnose concluido com sucesso. >> "%BAT_LOG%"
+)
+echo.
+echo Relatorio: %REPORT_PATH%
+echo Log BAT: %BAT_LOG%
+echo.
+pause
 endlocal
