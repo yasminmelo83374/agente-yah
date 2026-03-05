@@ -751,9 +751,9 @@ Ensure-Directories
 Ensure-OutputFiles
 Ensure-ConfigTemplate
 
-$autoResolvedUrl = Resolve-BundleUrl
-if (-not [string]::IsNullOrWhiteSpace($autoResolvedUrl)) {
-  Save-ConfigBundleUrl -Url $autoResolvedUrl
+$autoResolvedInfo = Resolve-BundleUrlInfo
+if (($autoResolvedInfo.source -eq 'parameter') -and (-not [string]::IsNullOrWhiteSpace($autoResolvedInfo.url))) {
+  Save-ConfigBundleUrl -Url $autoResolvedInfo.url
 }
 
 Write-Log "Inicio do modo $Mode"
